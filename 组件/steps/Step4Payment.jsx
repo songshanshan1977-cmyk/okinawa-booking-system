@@ -1,40 +1,43 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+// ⭐ 你的 Supabase 边缘函数 URL（不要改）
+const SUPABASE_FN_URL =
+  "https://xljenmxsmhmghtrlllat.supabase.co/functions/v1/create-payment-intent";
+
 export default function Step4Payment({ initialData, onNext, onBack }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   // --------------------------
-  // 调用 Vercel /api/create-payment-intent
+  // 调用 Supabase create-payment-intent
   // --------------------------
   const handlePay = async () => {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/create-payment-intent", {
+      const res = await fetch(SUPABASE_FN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          order_id: initialData.order_id,
+          order_id: initialData.order_id, // 必须带上订单号
           amount: 500, // 固定押金
-          currency: "cny", // Stripe 接受 CNY（人民币）
-          customer_email: initialData.email,
+          email: initialData.email, // 付款邮箱
         }),
       });
 
       const data = await res.json();
+      console.log("🔵 Supabase 支付返回：", data);
 
-      if (!data?.checkoutUrl) {
+      if (!data?.checkout_url) {
         setErrorMsg("无法获取支付链接，请稍后再试。");
         setLoading(false);
         return;
       }
 
-      // ⭐ 跳转到 Stripe Checkout
-      window.location.href = data.checkoutUrl;
-
+      // ⭐ 跳转到 Stripe Checkout 页面
+      window.location.href = data.checkout_url;
     } catch (err) {
       console.error("Stripe error:", err);
       setErrorMsg("支付初始化失败，请稍后再试。");
@@ -98,3 +101,4 @@ export default function Step4Payment({ initialData, onNext, onBack }) {
     </div>
   );
 }
+
