@@ -1,11 +1,12 @@
 import { useState } from "react";
 
-import Step1 from "./步骤/Step1";
-import Step2 from "./步骤/Step2";
-import Step3 from "./步骤/Step3";
-import Step4Payment from "./步骤/Step4Payment";
-import Step5Confirmation from "./步骤/Step5Confirmation";
-import Step6Final from "./步骤/Step6Final";
+// 正确引用 6 个步骤（注意路径！）
+import Step1 from "./steps/Step1";
+import Step2 from "./steps/Step2";
+import Step3 from "./steps/Step3";
+import Step4Payment from "./steps/Step4Payment";
+import Step5Confirmation from "./steps/Step5Confirmation";
+import Step6Final from "./steps/Step6Final";
 
 export default function BookingFlow() {
   const [step, setStep] = useState(1);
@@ -29,4 +30,3 @@ export default function BookingFlow() {
     </div>
   );
 }
-
