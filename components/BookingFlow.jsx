@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-// 正确引用 6 个步骤（注意路径！）
+// 正确引用 6 个步骤
 import Step1 from "./steps/Step1";
 import Step2 from "./steps/Step2";
 import Step3 from "./steps/Step3";
@@ -14,19 +14,52 @@ export default function BookingFlow() {
 
   const next = (data) => {
     setFormData((prev) => ({ ...prev, ...data }));
-    setStep(step + 1);
+    setStep((prev) => prev + 1);
   };
 
-  const back = () => setStep(step - 1);
+  const back = () => setStep((prev) => prev - 1);
 
   return (
     <div className="max-w-3xl mx-auto py-10 px-4">
       {step === 1 && <Step1 onNext={next} initialData={formData} />}
-      {step === 2 && <Step2 onNext={next} onBack={back} initialData={formData} />}
-      {step === 3 && <Step3 onNext={next} onBack={back} initialData={formData} />}
-      {step === 4 && <Step4Payment onNext={next} onBack={back} initialData={formData} />}
-      {step === 5 && <Step5Confirmation onNext={next} onBack={back} initialData={formData} />}
-      {step === 6 && <Step6Final initialData={formData} />}
+
+      {step === 2 && (
+        <Step2
+          onNext={next}
+          onBack={back}
+          initialData={formData}
+        />
+      )}
+
+      {step === 3 && (
+        <Step3
+          onNext={next}
+          onBack={back}
+          initialData={formData}
+        />
+      )}
+
+      {step === 4 && (
+        <Step4Payment
+          onNext={next}
+          onBack={back}
+          formData={formData}   {/* ← 修复的唯一地方 */}
+        />
+      )}
+
+      {step === 5 && (
+        <Step5Confirmation
+          onNext={next}
+          onBack={back}
+          initialData={formData}
+        />
+      )}
+
+      {step === 6 && (
+        <Step6Final
+          initialData={formData}
+        />
+      )}
     </div>
   );
 }
