@@ -1,4 +1,4 @@
-import BookingFlow from "../../组件/BookingFlow";
+import BookingFlow from "../BookingFlow";
 
 export default function BookingPage() {
   return <BookingFlow />;
