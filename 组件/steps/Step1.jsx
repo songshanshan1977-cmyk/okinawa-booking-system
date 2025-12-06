@@ -16,14 +16,18 @@ const zh = {
   next: "下一步",
 };
 
-// 自动识别渠道（安全处理 window，防止 Vercel 报错）
+// 自动识别渠道
 const getSource = () => {
-  if (typeof window === "undefined") return "direct";
   const params = new URLSearchParams(window.location.search);
   return params.get("from") || "direct";
 };
 
 export default function Step1({ initialData = {}, onNext }) {
+
+  // ⭐ 明天开始才能预约（当天禁止预订）
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const [startDate, setStartDate] = useState(
     initialData.start_date ? new Date(initialData.start_date) : null
   );
@@ -35,11 +39,7 @@ export default function Step1({ initialData = {}, onNext }) {
   );
   const [endHotel, setEndHotel] = useState(initialData.end_hotel || "");
 
-  const [source] = useState(initialData.source || getSource());
-
-  // -------------------
-  // ❗ 已完全移除库存检查，只负责收集信息
-  // -------------------
+  const [source] = useState(getSource());
 
   const handleNext = () => {
     if (!startDate || !endDate) {
@@ -51,8 +51,10 @@ export default function Step1({ initialData = {}, onNext }) {
       return;
     }
 
-    // 把 Step1 收集到的数据传给 BookingFlow
+    // ⭐ 必须保留 initialData（特别是 order_id）
     onNext({
+      ...initialData,
+
       start_date: startDate.toISOString().slice(0, 10),
       end_date: endDate.toISOString().slice(0, 10),
       departure_hotel: departureHotel,
@@ -74,7 +76,7 @@ export default function Step1({ initialData = {}, onNext }) {
           <Calendar
             onChange={setStartDate}
             value={startDate}
-            minDate={new Date()}
+            minDate={tomorrow}   // ← 改成明天
           />
         </div>
 
@@ -83,7 +85,7 @@ export default function Step1({ initialData = {}, onNext }) {
           <Calendar
             onChange={setEndDate}
             value={endDate}
-            minDate={startDate || new Date()}
+            minDate={startDate || tomorrow}  // ← 结束日期不能早于开始日期
           />
         </div>
       </div>
@@ -119,3 +121,4 @@ export default function Step1({ initialData = {}, onNext }) {
     </div>
   );
 }
+
