@@ -1,146 +1,93 @@
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/alert";
-import { supabase } from "@/lib/customSupabaseClient";
 
-export default function Step4Payment({
-  initialData,
-  orderId,
-  carModelId,
-  amount,
-  onBack,
-  onNext,
-}) {
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+// 车型名称映射（与 Step2 保持一致）
+// 如果你将来换数据库字段名称，也统一改这里即可
+const carNameMap = {
+  car1: "经济 5 座轿车",
+  car2: "豪华 7 座阿尔法",
+  car3: "舒适 10 座海狮",
+};
 
-  const handlePay = async () => {
-    setLoading(true);
-    setErrorMsg("");
-
-    try {
-      // ⭐ Step 1：写入订单（完美对应 Supabase orders 表字段）
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_id: orderId,
-          car_model_id: carModelId,
-
-          start_date: initialData.start_date,
-          end_date: initialData.end_date,
-          departure_hotel: initialData.departure_hotel,
-          end_hotel: initialData.end_hotel,
-
-          pax: initialData.pax,
-          luggage: initialData.luggage,
-
-          driver_lang: initialData.driver_lang,
-          duration: initialData.duration,
-
-          total_price: initialData.total_price,
-          deposit_amount: 500,
-
-          name: initialData.name,
-          phone: initialData.phone,
-          email: initialData.email,
-          remark: initialData.remark,
-
-          status: "pending",
-        })
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error("订单写入失败：", orderError);
-        setErrorMsg("订单创建失败，请稍后再试。");
-        setLoading(false);
-        return;
-      }
-
-      // ⭐ Step 2：调用旧版 create-payment-intent
-      const { data: fxData, error: fxError } = await supabase.functions.invoke(
-        "create-payment-intent",
-        {
-          body: {
-            order_id: orderId,
-            amount: 500, // 固定押金金额（旧版只接受 amount）
-            email: initialData.email,
-          },
-        }
-      );
-
-      if (fxError) {
-        console.error("支付连接失败：", fxError);
-        setErrorMsg("支付系统连接失败，请稍后再试。");
-        setLoading(false);
-        return;
-      }
-
-      // ⭐ 旧版返回字段：url
-      if (!fxData?.url) {
-        console.error("返回数据异常：", fxData);
-        setErrorMsg("无法获取支付链接，请联系客服。");
-        setLoading(false);
-        return;
-      }
-
-      // ⭐ Step 3：跳转 Stripe 支付页
-      window.location.href = fxData.url;
-
-    } catch (e) {
-      console.error("支付初始化异常：", e);
-      setErrorMsg("支付初始化失败，请稍后再试。");
-    }
-
-    setLoading(false);
-  };
+export default function Step3({ initialData, onNext, onBack }) {
+  const {
+    order_id,
+    start_date,
+    end_date,
+    departure_hotel,
+    end_hotel,
+    car_model,
+    driver_lang,
+    duration,
+    total_price,
+    name,
+    phone,
+    email,
+    remark,
+  } = initialData;
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8">
-      <h2 className="text-3xl font-bold mb-4">确认并支付押金</h2>
+    <div className="max-w-3xl mx-auto space-y-10">
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border">
-        <h3 className="text-xl font-semibold mb-4">订单摘要</h3>
+      {/* 标题 */}
+      <div className="text-center">
+        <h2 className="text-4xl font-bold mb-3">订单预览</h2>
+        <p className="text-gray-600">请确认以下订单信息，若无误请继续下一步。</p>
+        <p className="text-gray-500 mt-2 text-sm">订单编号：{order_id}</p>
+      </div>
 
-        <div className="space-y-2 text-gray-700">
-          <p>🚗 车型：{initialData.car_model}</p>
-          <p>🗣 司机语言：{initialData.driver_lang}</p>
-          <p>⏱ 包车时长：{initialData.duration} 小时</p>
-          <p>
-            📅 出行日期：{initialData.start_date} → {initialData.end_date}
-          </p>
-          <p>🏨 出发酒店：{initialData.departure_hotel}</p>
-          <p>🏨 回程酒店：{initialData.end_hotel}</p>
-          <p>👤 客户姓名：{initialData.name}</p>
-          <p>☎ 电话：{initialData.phone}</p>
-          <p>📧 邮箱：{initialData.email}</p>
+      {/* 内容 */}
+      <div className="bg-white shadow-md rounded-xl p-8 space-y-6">
+
+        {/* 日期信息 */}
+        <div>
+          <h3 className="text-xl font-bold mb-3">📅 用车日期</h3>
+          <p>开始日期：{start_date}</p>
+          <p>结束日期：{end_date}</p>
+          <p>出发酒店：{departure_hotel}</p>
+          <p>回程酒店：{end_hotel}</p>
         </div>
 
-        <div className="mt-6 border-t pt-4">
-          <p className="text-xl font-bold">
-            需支付押金：<span className="text-blue-600">¥500</span>
+        <hr />
+
+        {/* 车型信息 */}
+        <div>
+          <h3 className="text-xl font-bold mb-3">🚗 车型 & 服务信息</h3>
+
+          <p>车型：{carNameMap[car_model]}</p>
+          <p>司机语言：{driver_lang === "zh" ? "中文司机" : "日文司机"}</p>
+          <p>包车时长：{duration} 小时</p>
+
+          <p className="mt-1 text-lg">包车费用：¥{total_price}</p>
+
+          <p className="text-blue-600 font-semibold mt-2">
+            押金：¥500（固定）
           </p>
-          <p className="text-sm text-gray-500">(尾款请在用车当天付给司机)</p>
+        </div>
+
+        <hr />
+
+        {/* 联系信息 */}
+        <div>
+          <h3 className="text-xl font-bold mb-3">👤 客户信息</h3>
+          <p>姓名：{name}</p>
+          <p>电话：{phone}</p>
+          <p>邮箱：{email}</p>
+          <p>备注：{remark || "无"}</p>
         </div>
       </div>
 
-      {errorMsg && (
-        <Alert className="bg-red-50 border-red-300 text-red-700">
-          {errorMsg}
-        </Alert>
-      )}
-
+      {/* 按钮 */}
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          返回上一步
+          返回修改
         </Button>
 
         <Button
-          onClick={handlePay}
-          className="bg-blue-600 text-white px-6 py-3 text-lg"
-          disabled={loading}
+          className="bg-blue-600 text-white px-8 py-3"
+          onClick={() => onNext({ ...initialData })}
         >
-          {loading ? "正在连接支付…" : "前往支付押金"}
+          前往支付
         </Button>
       </div>
     </div>
