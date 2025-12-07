@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 // ---------------------
-// 车型 UUID（数据库真实 ID）
+// 车型 UUID
 // ---------------------
 const CAR_MODEL_UUID = {
   car1: "5fdce9d4-2ef3-42ca-9d0c-a06446b0d9ca",
@@ -28,53 +28,45 @@ export default function Step2({ initialData, onNext, onBack }) {
   const [phone, setPhone] = useState(initialData.phone || "");
   const [email, setEmail] = useState(initialData.email || "");
 
-  // ---------------------
-  // 从 Supabase 读取价格
-  // ---------------------
-  const [carPrices, setCarPrices] = useState(null);
+  // ----------- ⭐⭐ 新增：从数据库读取价格表 ⭐⭐ -----------
+  const [price, setPrice] = useState(null);
 
   useEffect(() => {
-    async function loadPrices() {
-      const { data, error } = await supabase.from("cars").select("*");
+    async function loadPrice() {
+      const car_model_id = CAR_MODEL_UUID[carModel];
+      const date = initialData.start_date; // ❗ 用出发日期决定价格
+
+      const { data, error } = await supabase
+        .from("car_prices")
+        .select("*")
+        .eq("car_model_id", car_model_id)
+        .eq("driver_lang", driverLang)
+        .eq("duration_hours", duration)
+        .lte("start_date", date)
+        .gte("end_date", date)
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       if (error) {
-        console.error("加载价格失败：", error);
+        console.error("读取价格失败:", error);
         return;
       }
-      // 转成字典格式： car1、car2、car3
-      const priceMap = {};
-      data.forEach((item) => {
-        if (item.id === CAR_MODEL_UUID.car1) priceMap.car1 = item;
-        if (item.id === CAR_MODEL_UUID.car2) priceMap.car2 = item;
-        if (item.id === CAR_MODEL_UUID.car3) priceMap.car3 = item;
-      });
 
-      setCarPrices(priceMap);
+      console.log("匹配到价格：", data);
+      setPrice(data ? data.price_rmb : null);
     }
 
-    loadPrices();
-  }, []);
+    loadPrice();
+  }, [carModel, driverLang, duration]);
 
-  if (!carPrices) {
+  if (price === null) {
     return <div className="p-10 text-center">价格加载中，请稍候...</div>;
   }
 
-  // ---------------------
-  // 自动计算价格
-  // ---------------------
-  const dbCar = carPrices[carModel];
+  const totalPrice = price;
 
-  const totalPrice =
-    driverLang === "zh"
-      ? duration === 8
-        ? dbCar.price_cn_8h
-        : dbCar.price_cn_10h
-      : duration === 8
-      ? dbCar.price_jp_8h
-      : dbCar.price_jp_10h;
-
-  // ---------------------
   // 下一步
-  // ---------------------
   const goNext = () => {
     if (!name || !phone || !email) {
       alert("请填写完整个人信息");
@@ -105,7 +97,8 @@ export default function Step2({ initialData, onNext, onBack }) {
     <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
       {/* 左侧内容 */}
       <div className="md:col-span-2 space-y-10">
-        {/* 人数 行李 */}
+        
+        {/* 人数 / 行李 */}
         <div className="flex justify-around">
           <div className="text-center">
             <Label>人数</Label>
@@ -167,7 +160,7 @@ export default function Step2({ initialData, onNext, onBack }) {
       <div className="border p-6 rounded-xl shadow-md bg-white h-fit">
         <h2 className="text-xl font-bold mb-4">费用总览</h2>
 
-        <p>已选车型：{carPrices[carModel].name_zh}</p>
+        <p>已选车型：{carModel === "car1" ? "经济 5 座轿车" : carModel === "car2" ? "豪华 7 座阿尔法" : "舒适 10 座海狮"}</p>
         <p>司机语言：{driverLang === "zh" ? "中文司机" : "日文司机"}</p>
         <p>时长：{duration} 小时</p>
 
@@ -185,3 +178,4 @@ export default function Step2({ initialData, onNext, onBack }) {
     </div>
   );
 }
+
