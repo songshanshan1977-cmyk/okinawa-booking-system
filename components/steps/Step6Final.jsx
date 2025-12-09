@@ -47,4 +47,3 @@ export default function Step6Final({ initialData }) {
     </div>
   );
 }
-
