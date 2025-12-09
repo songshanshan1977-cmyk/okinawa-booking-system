@@ -1,11 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-// ⭐ Supabase Edge Function（正式版本）
-const SUPABASE_FN_URL =
-  "https://xljenmxsmhmghtrlilat.supabase.co/functions/v1/create-payment-intent";
-
-// ⭐ 车型映射（展示用）
+// 车型名称映射（展示用）
 const carNameMap = {
   car1: "经济 5 座轿车",
   car2: "豪华 7 座阿尔法",
@@ -16,36 +12,33 @@ export default function Step4Payment({ initialData, onNext, onBack }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // --------------------------
-  // ⭐ 调用 Edge Function 生成 Stripe Checkout URL
-  // --------------------------
+  // ⭐ 调用 Vercel API 生成 Stripe Checkout URL
   const handlePay = async () => {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      const response = await fetch(SUPABASE_FN_URL, {
+      const response = await fetch("/api/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orderId: initialData.order_id, // ⭐ 必须与 Edge Function 参数一致
+          orderId: initialData.order_id, // 已由 Step3 创建订单产生
         }),
       });
 
       const data = await response.json();
-      console.log("Stripe Checkout 返回：", data);
+      console.log("🔵 Stripe Checkout 返回：", data);
 
-      if (!data?.url) {
-        setErrorMsg("无法生成支付链接，请稍后再试。");
-        setLoading(false);
-        return;
+      if (!response.ok || !data?.url) {
+        throw new Error(data.error || "无法生成支付链接，请稍后再试。");
       }
 
-      // ⭐ Stripe Checkout 页面跳转
+      // 自动跳转 Stripe 支付页面
       window.location.href = data.url;
     } catch (err) {
       console.error("支付错误：", err);
-      setErrorMsg("连接支付系统失败，请稍后再试。");
+      setErrorMsg(err.message || "连接支付系统失败，请稍后再试。");
+    } finally {
       setLoading(false);
     }
   };
@@ -80,8 +73,7 @@ export default function Step4Payment({ initialData, onNext, onBack }) {
 
         <div className="mt-6 border-t pt-4">
           <p className="text-xl font-bold">
-            需支付押金：
-            <span className="text-blue-600">¥500</span>
+            需支付押金：<span className="text-blue-600">¥500</span>
           </p>
         </div>
       </div>
@@ -108,3 +100,4 @@ export default function Step4Payment({ initialData, onNext, onBack }) {
     </div>
   );
 }
+
