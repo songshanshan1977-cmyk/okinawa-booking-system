@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-// ⭐ 正确的 Supabase Edge Function URL（已修正）
+// ⭐ Supabase Edge Function（正式版本）
 const SUPABASE_FN_URL =
   "https://xljenmxsmhmghtrlilat.supabase.co/functions/v1/create-payment-intent";
 
-// ⭐ 车型名称映射（不影响数据库，仅用于展示）
+// ⭐ 车型映射（展示用）
 const carNameMap = {
   car1: "经济 5 座轿车",
   car2: "豪华 7 座阿尔法",
@@ -17,38 +17,37 @@ export default function Step4Payment({ initialData, onNext, onBack }) {
   const [errorMsg, setErrorMsg] = useState("");
 
   // --------------------------
-  // 调用新版 create-payment-intent
+  // ⭐ 调用 Edge Function 生成 Stripe Checkout URL
   // --------------------------
   const handlePay = async () => {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      const res = await fetch(SUPABASE_FN_URL, {
+      const response = await fetch(SUPABASE_FN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orderId: initialData.order_id, // ⭐ 只传 orderId，不改逻辑
+          orderId: initialData.order_id, // ⭐ 必须与 Edge Function 参数一致
         }),
       });
 
-      const data = await res.json();
-      console.log("🔵 支付返回：", data);
+      const data = await response.json();
+      console.log("Stripe Checkout 返回：", data);
 
       if (!data?.url) {
-        setErrorMsg("无法获取支付链接，请稍后再试。");
+        setErrorMsg("无法生成支付链接，请稍后再试。");
         setLoading(false);
         return;
       }
 
-      // ⭐ 跳转到 Stripe Checkout 页面
+      // ⭐ Stripe Checkout 页面跳转
       window.location.href = data.url;
     } catch (err) {
-      console.error("Stripe error:", err);
-      setErrorMsg("支付初始化失败，请稍后再试。");
+      console.error("支付错误：", err);
+      setErrorMsg("连接支付系统失败，请稍后再试。");
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -64,7 +63,10 @@ export default function Step4Payment({ initialData, onNext, onBack }) {
 
         <div className="space-y-2 text-gray-700">
           <p>🚗 车型：{carNameMap[initialData.car_model]}</p>
-          <p>🗣 司机语言：{initialData.driver_lang === "zh" ? "中文司机" : "日文司机"}</p>
+          <p>
+            🗣 司机语言：
+            {initialData.driver_lang === "zh" ? "中文司机" : "日文司机"}
+          </p>
           <p>⏱ 时长：{initialData.duration} 小时</p>
           <p>
             📅 日期：{initialData.start_date} → {initialData.end_date}
@@ -78,7 +80,8 @@ export default function Step4Payment({ initialData, onNext, onBack }) {
 
         <div className="mt-6 border-t pt-4">
           <p className="text-xl font-bold">
-            需支付押金：<span className="text-blue-600">¥500</span>
+            需支付押金：
+            <span className="text-blue-600">¥500</span>
           </p>
         </div>
       </div>
