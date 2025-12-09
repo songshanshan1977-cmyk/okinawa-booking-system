@@ -16,12 +16,16 @@ const zh = {
   next: "下一步",
 };
 
-// 自动识别渠道（安全处理 window，防止 Vercel 报错）
+// 自动识别渠道
 const getSource = () => {
   if (typeof window === "undefined") return "direct";
   const params = new URLSearchParams(window.location.search);
   return params.get("from") || "direct";
 };
+
+// ⭐ 关键：禁止当日下单（最早只能选明天）
+const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
 
 export default function Step1({ initialData = {}, onNext }) {
   const [startDate, setStartDate] = useState(
@@ -30,16 +34,9 @@ export default function Step1({ initialData = {}, onNext }) {
   const [endDate, setEndDate] = useState(
     initialData.end_date ? new Date(initialData.end_date) : null
   );
-  const [departureHotel, setDepartureHotel] = useState(
-    initialData.departure_hotel || ""
-  );
+  const [departureHotel, setDepartureHotel] = useState(initialData.departure_hotel || "");
   const [endHotel, setEndHotel] = useState(initialData.end_hotel || "");
-
   const [source] = useState(initialData.source || getSource());
-
-  // -------------------
-  // ❗ 已完全移除库存检查，只负责收集信息
-  // -------------------
 
   const handleNext = () => {
     if (!startDate || !endDate) {
@@ -51,7 +48,7 @@ export default function Step1({ initialData = {}, onNext }) {
       return;
     }
 
-    // 把 Step1 收集到的数据传给 BookingFlow
+    // 写入 BookingFlow
     onNext({
       start_date: startDate.toISOString().slice(0, 10),
       end_date: endDate.toISOString().slice(0, 10),
@@ -74,7 +71,7 @@ export default function Step1({ initialData = {}, onNext }) {
           <Calendar
             onChange={setStartDate}
             value={startDate}
-            minDate={new Date()}
+            minDate={tomorrow}   // ⭐ 禁止选择今天
           />
         </div>
 
@@ -83,7 +80,7 @@ export default function Step1({ initialData = {}, onNext }) {
           <Calendar
             onChange={setEndDate}
             value={endDate}
-            minDate={startDate || new Date()}
+            minDate={startDate || tomorrow}  // ⭐ 结束日期 ≥ 开始日期
           />
         </div>
       </div>
