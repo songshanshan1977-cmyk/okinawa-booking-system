@@ -1,19 +1,21 @@
 import React, { useState } from "react";
-import Step1 from "./Step1";
-import Step2 from "./Step2";
-import Step3 from "./Step3";
-import Step4Payment from "./Step4Payment";
-import Step5Confirmation from "./Step5Confirmation";
-import Step6Final from "./Step6Final";
 
-// ⭐ Supabase 车型表 UUID 映射（最终版）
+// ⭐ 按你项目的真实路径导入 Step 组件（必须这样）
+import Step1 from "./steps/Step1";
+import Step2 from "./steps/Step2";
+import Step3 from "./steps/Step3";
+import Step4Payment from "./steps/Step4Payment";
+import Step5Confirmation from "./steps/Step5Confirmation";
+import Step6Final from "./steps/Step6Final";
+
+// ⭐ Supabase 车型表 UUID（你数据库里的最终版本）
 const CAR_MODEL_IDS = {
-  car1: "5fdce9d4-2ef3-42ca-9d0c-a06446b0d9ca",
-  car2: "82cf604f-e688-49fe-aecf-69894a01f6cb",
-  car3: "453df662-d350-4ab9-b811-61ffcda40d4b",
+  car1: "5fdce9d4-2ef3-42ca-9d0c-a06446b0d9ca", // 经济型轿车
+  car2: "82cf604f-e688-49fe-aecf-69894a01f6cb", // 阿尔法
+  car3: "453df662-d350-4ab9-b811-61ffcda40d4b", // 海狮
 };
 
-// ⭐ 生成订单编号
+// ⭐ 自动生成订单编号：ORD-173465923xxxx
 function generateOrderId() {
   return "ORD-" + Date.now();
 }
@@ -21,54 +23,43 @@ function generateOrderId() {
 export default function BookingFlow() {
   const [step, setStep] = useState(1);
 
-  // ⭐ 全局订单数据
+  // ⭐ 全局订单数据（与 Supabase orders 表字段一致）
   const [bookingData, setBookingData] = useState({
     order_id: generateOrderId(),
 
-    // Step1
+    // Step1 数据
     start_date: "",
     end_date: "",
     departure_hotel: "",
     end_hotel: "",
     pax: 1,
     luggage: 1,
+    source: "direct",
 
-    // Step2
+    // Step2 数据
     car_model: "",
     car_model_id: "",
     driver_lang: "",
     duration: "",
 
-    // Step3
+    // Step3 数据
     total_price: 0,
     deposit_amount: 500,
 
-    // Contact
+    // 联系方式
     name: "",
     phone: "",
     email: "",
     remark: "",
-
-    source: "direct",
   });
 
-  // Step1 → Step2 （⭐加入当日不能下单逻辑）
+  // Step1 → Step2
   const handleStep1Next = (data) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const start = new Date(data.start_date);
-
-    if (start <= today) {
-      alert("❌ 当日不能下单，最早可选择明天的日期。");
-      return;
-    }
-
     setBookingData((prev) => ({ ...prev, ...data }));
     setStep(2);
   };
 
-  // Step2 → Step3（写入车型ID）
+  // Step2 → Step3（写入车型 ID）
   const handleStep2Next = (data) => {
     const carModelId = CAR_MODEL_IDS[data.car_model] || "";
 
@@ -87,7 +78,7 @@ export default function BookingFlow() {
     setStep(4);
   };
 
-  // Step4 → Step5（支付成功）
+  // Step4 → Step5（Stripe 支付成功返回）
   const handleStep4Next = (paymentInfo) => {
     setBookingData((prev) => ({ ...prev, ...paymentInfo }));
     setStep(5);
@@ -100,10 +91,16 @@ export default function BookingFlow() {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
+
+      {/* Step1 */}
       {step === 1 && (
-        <Step1 initialData={bookingData} onNext={handleStep1Next} />
+        <Step1
+          initialData={bookingData}
+          onNext={handleStep1Next}
+        />
       )}
 
+      {/* Step2 */}
       {step === 2 && (
         <Step2
           initialData={bookingData}
@@ -112,6 +109,7 @@ export default function BookingFlow() {
         />
       )}
 
+      {/* Step3 */}
       {step === 3 && (
         <Step3
           initialData={bookingData}
@@ -120,6 +118,7 @@ export default function BookingFlow() {
         />
       )}
 
+      {/* Step4 支付押金 */}
       {step === 4 && (
         <Step4Payment
           initialData={bookingData}
@@ -131,6 +130,7 @@ export default function BookingFlow() {
         />
       )}
 
+      {/* Step5 支付后确认页 */}
       {step === 5 && (
         <Step5Confirmation
           initialData={bookingData}
@@ -139,7 +139,13 @@ export default function BookingFlow() {
         />
       )}
 
-      {step === 6 && <Step6Final initialData={bookingData} />}
+      {/* Step6 最终确认成功 */}
+      {step === 6 && (
+        <Step6Final
+          initialData={bookingData}
+        />
+      )}
     </div>
   );
 }
+
