@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 // 车型名称映射（与 Step2 保持一致）
-// 如果你将来换数据库字段名称，也统一改这里即可
 const carNameMap = {
   car1: "经济 5 座轿车",
   car2: "豪华 7 座阿尔法",
@@ -11,7 +10,6 @@ const carNameMap = {
 
 export default function Step3({ initialData, onNext, onBack }) {
   const {
-    order_id,
     start_date,
     end_date,
     departure_hotel,
@@ -26,6 +24,61 @@ export default function Step3({ initialData, onNext, onBack }) {
     remark,
   } = initialData;
 
+  // 新增：加载状态 & 错误提示
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // ⭐ 创建订单（调用 /api/create-order）
+  const handleCreateOrder = async () => {
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          car_model_id: initialData.car_model_id, // 车型 UUID
+          start_date,
+          end_date,
+          departure_hotel,
+          end_hotel,
+          driver_lang,
+          duration,
+          price_total: total_price,
+          deposit_amount: 500, // 固定押金
+          name,
+          phone,
+          email,
+          remark,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "创建订单失败，请稍后再试");
+      }
+
+      const newOrderId = data.orderId;
+
+      if (!newOrderId) {
+        throw new Error("服务返回的订单号为空");
+      }
+
+      // ⭐ 将 order_id 传给 Step4
+      onNext({
+        ...initialData,
+        order_id: newOrderId,
+      });
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-10">
 
@@ -33,8 +86,12 @@ export default function Step3({ initialData, onNext, onBack }) {
       <div className="text-center">
         <h2 className="text-4xl font-bold mb-3">订单预览</h2>
         <p className="text-gray-600">请确认以下订单信息，若无误请继续下一步。</p>
-        <p className="text-gray-500 mt-2 text-sm">订单编号：{order_id}</p>
       </div>
+
+      {/* 错误提示 */}
+      {errorMsg && (
+        <p className="text-red-600 text-center font-semibold">{errorMsg}</p>
+      )}
 
       {/* 内容 */}
       <div className="bg-white shadow-md rounded-xl p-8 space-y-6">
@@ -85,9 +142,10 @@ export default function Step3({ initialData, onNext, onBack }) {
 
         <Button
           className="bg-blue-600 text-white px-8 py-3"
-          onClick={() => onNext({ ...initialData })}
+          onClick={handleCreateOrder}
+          disabled={loading}
         >
-          前往支付
+          {loading ? "创建订单中..." : "前往支付"}
         </Button>
       </div>
     </div>
