@@ -10,10 +10,10 @@ import Step6Final from "./Step6Final";
 const CAR_MODEL_IDS = {
   car1: "5fdce9d4-2ef3-42ca-9d0c-a06446b0d9ca",
   car2: "82cf604f-e688-49fe-aecf-69894a01f6cb",
-  car3: "453df662-d350-4ab9-b811-61ffcda40d4b"
+  car3: "453df662-d350-4ab9-b811-61ffcda40d4b",
 };
 
-// ⭐ 自动生成订单编号
+// ⭐ 生成订单编号
 function generateOrderId() {
   return "ORD-" + Date.now();
 }
@@ -21,7 +21,7 @@ function generateOrderId() {
 export default function BookingFlow() {
   const [step, setStep] = useState(1);
 
-  // ⭐ 全局订单数据（最终对齐 Supabase orders 表）
+  // ⭐ 全局订单数据
   const [bookingData, setBookingData] = useState({
     order_id: generateOrderId(),
 
@@ -43,7 +43,7 @@ export default function BookingFlow() {
     total_price: 0,
     deposit_amount: 500,
 
-    // Contact info
+    // Contact
     name: "",
     phone: "",
     email: "",
@@ -52,9 +52,19 @@ export default function BookingFlow() {
     source: "direct",
   });
 
-  // Step1 → Step2
+  // Step1 → Step2 （⭐加入当日不能下单逻辑）
   const handleStep1Next = (data) => {
-    setBookingData(prev => ({ ...prev, ...data }));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(data.start_date);
+
+    if (start <= today) {
+      alert("❌ 当日不能下单，最早可选择明天的日期。");
+      return;
+    }
+
+    setBookingData((prev) => ({ ...prev, ...data }));
     setStep(2);
   };
 
@@ -62,10 +72,10 @@ export default function BookingFlow() {
   const handleStep2Next = (data) => {
     const carModelId = CAR_MODEL_IDS[data.car_model] || "";
 
-    setBookingData(prev => ({
+    setBookingData((prev) => ({
       ...prev,
       ...data,
-      car_model_id: carModelId
+      car_model_id: carModelId,
     }));
 
     setStep(3);
@@ -73,13 +83,13 @@ export default function BookingFlow() {
 
   // Step3 → Step4
   const handleStep3Next = (data) => {
-    setBookingData(prev => ({ ...prev, ...data }));
+    setBookingData((prev) => ({ ...prev, ...data }));
     setStep(4);
   };
 
-  // Step4（支付成功）→ Step5
+  // Step4 → Step5（支付成功）
   const handleStep4Next = (paymentInfo) => {
-    setBookingData(prev => ({ ...prev, ...paymentInfo }));
+    setBookingData((prev) => ({ ...prev, ...paymentInfo }));
     setStep(5);
   };
 
@@ -90,12 +100,8 @@ export default function BookingFlow() {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
-
       {step === 1 && (
-        <Step1
-          initialData={bookingData}
-          onNext={handleStep1Next}
-        />
+        <Step1 initialData={bookingData} onNext={handleStep1Next} />
       )}
 
       {step === 2 && (
@@ -114,7 +120,6 @@ export default function BookingFlow() {
         />
       )}
 
-      {/* ⭐ Step4Payment（参数全部对齐） */}
       {step === 4 && (
         <Step4Payment
           initialData={bookingData}
@@ -134,12 +139,7 @@ export default function BookingFlow() {
         />
       )}
 
-      {step === 6 && (
-        <Step6Final
-          initialData={bookingData}
-        />
-      )}
-
+      {step === 6 && <Step6Final initialData={bookingData} />}
     </div>
   );
 }
