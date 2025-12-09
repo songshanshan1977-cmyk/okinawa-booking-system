@@ -1,4 +1,4 @@
-import BookingFlow from "@/components/BookingFlow";
+import BookingFlow from "../../components/BookingFlow";
 
 export default function BookingPage() {
   return <BookingFlow />;
